@@ -147,7 +147,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response, parse_mode="Markdown")
 
 
-def main():
+async def main():
     if not BOT_TOKEN:
         raise ValueError("Thiếu TELEGRAM_BOT_TOKEN trong biến môi trường!")
 
@@ -155,8 +155,13 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info("Bot đang chạy...")
-    app.run_polling()
+    async with app:
+        await app.start()
+        await app.updater.start_polling()
+        await app.updater.idle()
+        await app.stop()
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
