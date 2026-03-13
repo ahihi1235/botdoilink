@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-AFFILIATE_ID = os.environ.get("AFFILIATE_ID", "17385530062")
+AFFILIATE_ID = os.environ.get("AFFILIATE_ID", "17317300048")
 SUB_ID = os.environ.get("SUB_ID", "fb")
 RENDER_URL = os.environ.get("RENDER_URL", "")
 
