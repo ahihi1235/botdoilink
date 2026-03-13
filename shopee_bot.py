@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -146,6 +146,10 @@ async def process_url(url: str):
 # Telegram handler
 # ──────────────────────────────────────────────
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hãy gửi cho tôi Link Shopee mà bạn Muốn Chuyển Đổi !!")
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
     urls = extract_urls(text)
@@ -170,16 +174,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             failed.append(url)
 
-    parts = []
-    if affiliate_links:
-        parts.append("\n".join(f"`{link}`" for link in affiliate_links))
-    if failed:
-        parts.append("❌ Không xử lý được:\n" + "\n".join(f"• {u}" for u in failed))
-
-    if parts:
-        await update.message.reply_text("\n\n".join(parts), parse_mode="Markdown")
-    else:
+    if not affiliate_links and not failed:
         await update.message.reply_text("❌ Không thể xử lý các link này. Vui lòng thử lại.")
+        return
+
+    parts = []
+
+    if affiliate_links:
+        header = "⚡️Copy Link Dưới Và Dán Lên CMT Facebook: fb\.com/groups/sansaleshopeelazada1\n\n⚡️Click để tự động Copy:"
+        links_text = "\n".join(f"`{link}`" for link in affiliate_links)
+        parts.append(f"{header}\n{links_text}")
+
+    if failed:
+        warning = (
+            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ App Shopee "
+            "[từ App Shopee](https://s.shopee.vn/4AvBcURYH9)"
+        )
+        parts.append(warning)
+
+    await update.message.reply_text("\n\n".join(parts), parse_mode="Markdown")
 
 
 # ──────────────────────────────────────────────
@@ -187,6 +200,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ──────────────────────────────────────────────
 
 ptb_app = ApplicationBuilder().token(BOT_TOKEN).updater(None).build()
+ptb_app.add_handler(CommandHandler("start", start))
 ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 
