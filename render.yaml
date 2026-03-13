@@ -8,6 +8,6 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false   # Điền thủ công trong Render dashboard
       - key: AFFILIATE_ID
-        value: "17385530062"
+        value: "17317300048"
       - key: SUB_ID
         value: "fb"
