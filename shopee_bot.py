@@ -93,32 +93,24 @@ def extract_urls(text: str) -> list[str]:
     return re.findall(pattern, text)
 
 
-async def process_url(url: str) -> str:
-    """Xử lý một URL và trả về kết quả."""
+async def process_url(url: str) -> str | None:
+    """Xử lý một URL và trả về affiliate link hoặc None nếu lỗi."""
     if not is_shopee_url(url):
-        return f"❌ `{url}` không phải link Shopee."
+        return None
 
     if is_short_url(url):
-        # Resolve link rút gọn
         resolved = await resolve_short_url(url)
         if not resolved:
-            return f"❌ Không thể mở link rút gọn: `{url}`"
+            return None
         clean = clean_shopee_url(resolved)
         if not clean:
-            return (
-                f"⚠️ Đã resolve nhưng không nhận dạng được sản phẩm.\n"
-                f"URL gốc: `{resolved}`"
-            )
+            return None
     else:
         clean = clean_shopee_url(url)
         if not clean:
-            return f"❌ Không nhận dạng được ID sản phẩm từ: `{url}`"
+            return None
 
-    affiliate = build_affiliate_url(clean)
-    return (
-        f"✅ **Link sạch:**\n`{clean}`\n\n"
-        f"🔗 **Link affiliate:**\n`{affiliate}`"
-    )
+    return build_affiliate_url(clean)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -140,12 +132,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Không tìm thấy link Shopee hợp lệ trong tin nhắn.")
         return
 
-    results = []
+    affiliate_links = []
     for url in shopee_urls:
         result = await process_url(url)
-        results.append(result)
+        if result:
+            affiliate_links.append(result)
 
-    response = "\n\n---\n\n".join(results)
+    if not affiliate_links:
+        await update.message.reply_text("❌ Không thể xử lý các link này. Vui lòng thử lại.")
+        return
+
+    # Gom tất cả link thành 1 tin nhắn, mỗi link 1 dòng, dạng code để copy dễ
+    response = "\n".join(f"`{link}`" for link in affiliate_links)
     await update.message.reply_text(response, parse_mode="Markdown")
 
 
