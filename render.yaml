@@ -1,0 +1,13 @@
+services:
+  - type: worker
+    name: shopee-telegram-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python shopee_bot.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false   # Điền thủ công trong Render dashboard
+      - key: AFFILIATE_ID
+        value: "17385530062"
+      - key: SUB_ID
+        value: "fb"
