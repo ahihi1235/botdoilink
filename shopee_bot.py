@@ -2,8 +2,10 @@ import os
 import re
 import logging
 import httpx
-from urllib.parse import urlparse, urlencode, quote, parse_qs
+from urllib.parse import urlparse, quote
+from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request, Response
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
@@ -13,38 +15,31 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 AFFILIATE_ID = os.environ.get("AFFILIATE_ID", "17385530062")
 SUB_ID = os.environ.get("SUB_ID", "fb")
+RENDER_URL = os.environ.get("RENDER_URL", "")  # vd: https://ten-app.onrender.com
 
+# ──────────────────────────────────────────────
+# Shopee URL helpers
+# ──────────────────────────────────────────────
 
 def extract_product_ids_from_path(path: str):
-    """
-    Trích xuất shop_id và item_id từ path dạng:
-    /product/SHOP_ID/ITEM_ID
-    hoặc /ten-san-pham-i.SHOP_ID.ITEM_ID
-    """
-    # Dạng /product/SHOP_ID/ITEM_ID
     m = re.search(r"/product/(\d+)/(\d+)", path)
     if m:
         return m.group(1), m.group(2)
-
-    # Dạng slug kết thúc bằng -i.SHOP_ID.ITEM_ID
     m = re.search(r"-i\.(\d+)\.(\d+)", path)
     if m:
         return m.group(1), m.group(2)
-
     return None, None
 
 
-def clean_shopee_url(full_url: str) -> str | None:
-    """Làm sạch URL Shopee thành dạng chuẩn https://shopee.vn/product/SHOP_ID/ITEM_ID?"""
+def clean_shopee_url(full_url: str):
     parsed = urlparse(full_url)
     shop_id, item_id = extract_product_ids_from_path(parsed.path)
     if shop_id and item_id:
-        return f"https://shopee.vn/product/{shop_id}/{item_id}?"
+        return f"https://shopee.vn/product/{shop_id}/{item_id}"
     return None
 
 
-async def resolve_short_url(short_url: str) -> str | None:
-    """Theo dõi redirect để lấy URL gốc từ link rút gọn."""
+async def resolve_short_url(short_url: str):
     try:
         async with httpx.AsyncClient(
             follow_redirects=True,
@@ -59,10 +54,7 @@ async def resolve_short_url(short_url: str) -> str | None:
 
 
 def build_affiliate_url(clean_url: str) -> str:
-    """Tạo URL affiliate từ clean URL đã làm sạch."""
-    # Bỏ dấu ? thừa ở cuối trước khi encode
-    origin = clean_url.rstrip("?")
-    encoded = quote(origin, safe="")
+    encoded = quote(clean_url, safe="")
     return (
         f"https://s.shopee.vn/an_redir"
         f"?origin_link={encoded}"
@@ -72,52 +64,43 @@ def build_affiliate_url(clean_url: str) -> str:
 
 
 def is_short_url(url: str) -> bool:
-    """Kiểm tra xem URL có phải là link rút gọn không."""
-    parsed = urlparse(url)
-    return parsed.netloc in ("s.shopee.vn", "vn.shp.ee", "shp.ee")
+    return urlparse(url).netloc in ("s.shopee.vn", "vn.shp.ee", "shp.ee")
 
 
 def is_shopee_url(url: str) -> bool:
-    """Kiểm tra xem URL có phải là link Shopee không."""
-    parsed = urlparse(url)
-    return "shopee.vn" in parsed.netloc or parsed.netloc in (
-        "s.shopee.vn",
-        "vn.shp.ee",
-        "shp.ee",
-    )
+    netloc = urlparse(url).netloc
+    return "shopee.vn" in netloc or netloc in ("s.shopee.vn", "vn.shp.ee", "shp.ee")
 
 
-def extract_urls(text: str) -> list[str]:
-    """Trích xuất tất cả URLs từ văn bản."""
-    pattern = r"https?://[^\s<>\"']+"
-    return re.findall(pattern, text)
+def extract_urls(text: str):
+    return re.findall(r"https?://[^\s<>\"']+", text)
 
 
-async def process_url(url: str) -> str | None:
-    """Xử lý một URL và trả về affiliate link hoặc None nếu lỗi."""
+async def process_url(url: str):
     if not is_shopee_url(url):
         return None
-
     if is_short_url(url):
         resolved = await resolve_short_url(url)
         if not resolved:
             return None
         clean = clean_shopee_url(resolved)
-        if not clean:
-            return None
     else:
         clean = clean_shopee_url(url)
-        if not clean:
-            return None
-
+    if not clean:
+        return None
     return build_affiliate_url(clean)
 
+
+# ──────────────────────────────────────────────
+# Telegram handler
+# ──────────────────────────────────────────────
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
     urls = extract_urls(text)
+    shopee_urls = [u for u in urls if is_shopee_url(u)]
 
-    if not urls:
+    if not shopee_urls:
         await update.message.reply_text(
             "Vui lòng gửi link Shopee để tôi chuyển đổi nhé! 🛍️\n\n"
             "Hỗ trợ các dạng:\n"
@@ -125,11 +108,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• https://vn.shp.ee/...\n"
             "• https://shopee.vn/..."
         )
-        return
-
-    shopee_urls = [u for u in urls if is_shopee_url(u)]
-    if not shopee_urls:
-        await update.message.reply_text("Không tìm thấy link Shopee hợp lệ trong tin nhắn.")
         return
 
     affiliate_links = []
@@ -142,26 +120,44 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Không thể xử lý các link này. Vui lòng thử lại.")
         return
 
-    # Gom tất cả link thành 1 tin nhắn, mỗi link 1 dòng, dạng code để copy dễ
     response = "\n".join(f"`{link}`" for link in affiliate_links)
     await update.message.reply_text(response, parse_mode="Markdown")
 
 
-async def main():
-    if not BOT_TOKEN:
-        raise ValueError("Thiếu TELEGRAM_BOT_TOKEN trong biến môi trường!")
+# ──────────────────────────────────────────────
+# FastAPI + webhook setup
+# ──────────────────────────────────────────────
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    logger.info("Bot đang chạy...")
-    async with app:
-        await app.start()
-        await app.updater.start_polling()
-        await app.updater.idle()
-        await app.stop()
+ptb_app = ApplicationBuilder().token(BOT_TOKEN).updater(None).build()
+ptb_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await ptb_app.initialize()
+    await ptb_app.start()
+    if RENDER_URL:
+        webhook_url = f"{RENDER_URL}/webhook/{BOT_TOKEN}"
+        await ptb_app.bot.set_webhook(webhook_url)
+        logger.info(f"Webhook đã đăng ký: {webhook_url}")
+    else:
+        logger.warning("RENDER_URL chưa được set, webhook chưa được đăng ký!")
+    yield
+    await ptb_app.stop()
+    await ptb_app.shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+async def root():
+    return {"status": "Shopee Bot đang chạy ✅"}
+
+
+@app.post(f"/webhook/{BOT_TOKEN}")
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, ptb_app.bot)
+    await ptb_app.process_update(update)
+    return Response(status_code=200)
