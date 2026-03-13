@@ -181,14 +181,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parts = []
 
     if affiliate_links:
-        header = "⚡️Copy Link Dưới Và Dán Lên CMT Facebook: fb\.com/groups/sansaleshopeelazada1\n\n⚡️Click để tự động Copy:"
+        header = "⚡️Copy Link Dưới Và Dán Lên CMT Facebook: fb.com/groups/sansaleshopeelazada1\n\n⚡️Click để tự động Copy:" 
         links_text = "\n".join(f"`{link}`" for link in affiliate_links)
         parts.append(f"{header}\n{links_text}")
 
     if failed:
         warning = (
-            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ App Shopee "
-            "[từ App Shopee](https://s.shopee.vn/4AvBcURYH9)"
+            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ [App Shopee](https://s.shopee.vn/4AvBcURYH9)"
         )
         parts.append(warning)
 
