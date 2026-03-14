@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-AFFILIATE_ID = os.environ.get("AFFILIATE_ID", "17317300048")
+AFFILIATE_ID = os.environ.get("AFFILIATE_ID", "17385530062")
 SUB_ID = os.environ.get("SUB_ID", "fb")
 RENDER_URL = os.environ.get("RENDER_URL", "")
 
@@ -147,7 +147,7 @@ async def process_url(url: str):
 # ──────────────────────────────────────────────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hãy gửi cho tôi Link Shopee mà bạn Muốn Chuyển Đổi !")
+    await update.message.reply_text("Hãy gửi cho tôi Link Shopee mà bạn Muốn Chuyển Đổi !!")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -180,14 +180,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     parts = []
 
-   if affiliate_links:
+    if affiliate_links:
         links_text = "\n".join(f"`{link}`" for link in affiliate_links)
-        footer = "⚡️Copy Link Trên Và Dán Lên CMT Facebook: fb.com/groups/sansaleshopeelazada1"
+        footer = "⚡️Copy Link Trên Và Dán Lên CMT Gr Facebook: fb.com/groups/sansaleshopeelazada1"
         parts.append(f"⚡️Click để tự động Copy:\n{links_text}\n\n{footer}")
 
     if failed:
         warning = (
-            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ [App Shopee](https://s.shopee.vn/4AvBcURYH9)"
+            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ App Shopee "
+            "[từ App Shopee](https://s.shopee.vn/4AvBcURYH9)"
         )
         parts.append(warning)
 
