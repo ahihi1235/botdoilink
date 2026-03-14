@@ -180,10 +180,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     parts = []
 
-    if affiliate_links:
-        header = "⚡️Copy Link Dưới Và Dán Lên CMT Facebook: fb.com/groups/sansaleshopeelazada1\n\n⚡️Click để tự động Copy:" 
+   if affiliate_links:
         links_text = "\n".join(f"`{link}`" for link in affiliate_links)
-        parts.append(f"{header}\n{links_text}")
+        footer = "⚡️Copy Link Trên Và Dán Lên CMT Facebook: fb.com/groups/sansaleshopeelazada1"
+        parts.append(f"⚡️Click để tự động Copy:\n{links_text}\n\n{footer}")
 
     if failed:
         warning = (
