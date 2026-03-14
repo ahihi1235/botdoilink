@@ -147,7 +147,7 @@ async def process_url(url: str):
 # ──────────────────────────────────────────────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hãy gửi cho tôi Link Shopee mà bạn Muốn Chuyển Đổi !!")
+    await update.message.reply_text("Hãy gửi cho tôi Link Shopee mà bạn Muốn Chuyển Đổi !")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
