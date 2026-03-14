@@ -187,8 +187,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if failed:
         warning = (
-            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ App Shopee "
-            "[từ App Shopee](https://s.shopee.vn/4AvBcURYH9)"
+            "⚠️Đây không phải link Sản phẩm, Vui Lòng Copy Link Sản phẩm từ [App Shopee](https://s.shopee.vn/4AvBcURYH9)"
         )
         parts.append(warning)
 
